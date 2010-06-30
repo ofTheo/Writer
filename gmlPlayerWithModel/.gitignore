@@ -1,0 +1,6 @@
+*.svn
+build
+.DS_Store
+*.app
+*.mode1v3
+*.pbxuser
