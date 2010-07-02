@@ -171,6 +171,8 @@ void IKTagger::update( float elapsed )
 	CalVector arm_actual_position = model.getBonePosition( tag_arm );
 	ofxVec3f arm_target = character.getTarget(tag_arm);
 	CalVector bone_target_delta = CalVector(arm_target.x,arm_target.y,arm_target.z)-arm_actual_position;
+	// vertical distance has less effect
+	bone_target_delta.y *= 0.5f;
 	float distance = bone_target_delta.length();
 	float discomfort = distance/COMFORT_DISTANCE_THRESH;
 	if ( discomfort > 1.0f && !sidestep_running )
@@ -187,19 +189,21 @@ void IKTagger::update( float elapsed )
 }
 
 
-void IKTagger::draw()
+void IKTagger::draw( bool draw_debug )
 {
 	glPushMatrix();
 	glTranslatef( root_pos.x, root_pos.y, root_pos.z );
 	glTranslatef( -target_offset.x, -target_offset.y, -target_offset.z );
-	bool draw_extended = false;
-	character.draw( 1.0f, draw_extended );
-
+	if ( draw_debug )
+	{
+		bool draw_extended = false;
+		character.draw( 1.0f, draw_extended );
+	}
 	glRotatef( 180, 0, 1, 0 );
 	glRotatef( -90, 1, 0, 0 );
 	// swap left handed to right handed
 	glScalef( -1, 1, 1 );
-	bool draw_wireframe = true;
+	bool draw_wireframe = draw_debug;
 	model.draw( draw_wireframe );
 	glPopMatrix();
 }

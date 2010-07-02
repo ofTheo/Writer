@@ -194,22 +194,17 @@ void Cal3DModel::draw( bool wireframe, float scale )
 				int faceCount;
 				faceCount = pCalRenderer->getFaces(&meshFaces[0][0]);
 				
-/*				glColor3f( 0,0,0 );
-				glBegin( GL_POINTS );*/
 				ofPushMatrix();
-				ofSetColor( 0,0,0 );
-/*				for ( int i=0; i<faceCount; i++ )
-				{
-//					glVertex3fv( meshVertices[i] );
-					for ( int j=0; j<3; j++ )
-					{
-						ofLine(meshVertices[meshFaces[i][j]][0]*scale,		meshVertices[meshFaces[i][j]][2]*scale, 
-							   meshVertices[meshFaces[i][(j+1)%3]][0]*scale,meshVertices[meshFaces[i][(j+1)%3]][2]*scale );
-					}
-					printf("%7.3f %7.3f %7.3f\n", meshVertices[i][0], meshVertices[i][1], meshVertices[i][2] );
-				}*/
+				ofPushStyle();
 				ofEnableAlphaBlending();
-				glColor4f( 0,0,0,0.2f );
+				ofStyle style = ofGetStyle();
+				float red = (float)style.color.r/255;
+				float green = (float)style.color.g/255;
+				float blue = (float)style.color.b/255;
+				float alpha = (float)style.color.a/255;
+				printf("setting color %f %F %f %f\n", red, green, blue, alpha );
+				glColor4f( red,green,blue,alpha*(wireframe?0.3f:1.0f) );
+				
 				glPushAttrib( GL_DEPTH_BUFFER_BIT );
 				glDepthMask( GL_TRUE );
 				//glColor4f( 0,0,0,1 );
@@ -245,6 +240,7 @@ void Cal3DModel::draw( bool wireframe, float scale )
 				}
 				glPopAttrib();
 				
+				ofPopStyle();				
 				ofPopMatrix();
 //				glEnd();
 				// [ render the faces with the graphic-API here ]

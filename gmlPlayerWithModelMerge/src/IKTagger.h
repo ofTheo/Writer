@@ -17,7 +17,7 @@ class IKTagger
 public:
 	void setup( );
 	void update( float elapsed );
-	void draw();
+	void draw( bool draw_debug= false );
 	
 	
 	/// set the tag arm target to the given position

@@ -64,6 +64,7 @@ void testApp::update(){
 		panel.setValueB("restart", false);
 	}
 
+	// update the tagger's position
 	tagger.update( ofGetLastFrameTime() );
 	
 	if( lister.selectedHasChanged() ){
@@ -71,11 +72,21 @@ void testApp::update(){
 		lister.clearChangedFlag();
 	}
 	
+	// update the tag
 	if( tag.totalNumPoints() ){
-		tag.setPct( ofClamp(drawPct, 0, 1) );
-		drawPct += panel.getValueF("drawSpeed");
-		if( drawPct >= 1.5 ){
-			drawPct = 0.0;
+		// base on the comfort level of the tagger:
+		// don't update if it's too uncomfortable
+		if ( tagger.getHandTargetDiscomfort() > 1.2f )
+		{
+			// too uncomfortable
+		}
+		else
+		{
+			tag.setPct( ofClamp(drawPct, 0, 1) );
+			drawPct += panel.getValueF("drawSpeed");
+			if( drawPct >= 1.5 ){
+				drawPct = 0.0;
+			}
 		}
 	}
 	
@@ -86,8 +97,8 @@ void testApp::update(){
 //--------------------------------------------------------------
 void testApp::draw(){
 	
-	float relX = tag.currentPt.x * tagScale;
-	float relY = (tag.currentPt.y-0.4) * tagScale*1.8;
+	float relX = startOffset.x + tag.currentPt.x * tagScale;
+	float relY = startOffset.y + tag.currentPt.y * tagScale;
 	
 	tagger.setTagArmTarget( ofxVec3f(relX, relY, 0) );
 	
@@ -104,10 +115,12 @@ void testApp::draw(){
 	ofPopStyle();
 		
 	ofCircle(-0.5, 0.0, 0.1);
-		
-	glTranslatef(0, 0, 3.5);
-	glColor4f( 0, 0, 0, 1);
-	tagger.draw();
+
+	// tagger responds to ofSetColor :-)
+	ofSetColor( 0,0,0,255 );
+	// tagger must be drawn at 0,0,0 otherwise the setTagArmTarget() offsets get all fucked up
+	bool wireframe = true;
+	tagger.draw( wireframe );
 	
 	util_3d.end3dDrawing();
 	
