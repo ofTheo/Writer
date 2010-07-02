@@ -33,7 +33,7 @@ void testApp::setup(){
 	z = 0;
 	
 	tagger.setup();
-	tagger.setOtherArmTarget( ofxVec3f(-1.0, -1.5) );	
+//tagger.setOtherArmTarget( ofxVec3f(-1.0, -1.5) );	
 		
 	shiftX = 0.0;
 }
