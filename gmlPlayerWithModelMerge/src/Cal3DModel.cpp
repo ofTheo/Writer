@@ -202,7 +202,6 @@ void Cal3DModel::draw( bool wireframe, float scale )
 				float green = (float)style.color.g/255;
 				float blue = (float)style.color.b/255;
 				float alpha = (float)style.color.a/255;
-				printf("setting color %f %F %f %f\n", red, green, blue, alpha );
 				glColor4f( red,green,blue,alpha*(wireframe?0.3f:1.0f) );
 				
 				glPushAttrib( GL_DEPTH_BUFFER_BIT );

@@ -36,7 +36,7 @@ void testApp::setup(){
 	
 	z = 0;
 	
-	tagger.setup();
+	tagger.setup( "man_good.xml" );
 	//tagger.setOtherArmTarget( ofxVec3f(-1.0, -1.5, 2.0) );	
 		
 	shiftX = 0.0;
