@@ -108,6 +108,9 @@ void testApp::draw(){
 	
 	ofRotate(panel.getValueF("rotate"), 0, 1, 0);
 
+	// turn on the z-buffer
+	glEnable( GL_DEPTH_TEST );
+	
 	ofPushStyle();
 	ofSetLineWidth(2);
 	ofNoFill();
@@ -117,14 +120,16 @@ void testApp::draw(){
 	ofCircle(-0.5, 0.0, 0.1);
 
 	// tagger responds to ofSetColor :-)
-	ofSetColor( 0,0,0,255 );
+	ofSetColor( 64,64,64,255 );
 	// tagger must be drawn at 0,0,0 otherwise the setTagArmTarget() offsets get all fucked up
-	bool wireframe = true;
+	bool wireframe = false;
 	tagger.draw( wireframe );
 	
 	util_3d.end3dDrawing();
+
+	// turn off the z-buffer
+	glDisable( GL_DEPTH_TEST );
 	
-	ofSetupScreen();
 	panel.draw();
 }
 
