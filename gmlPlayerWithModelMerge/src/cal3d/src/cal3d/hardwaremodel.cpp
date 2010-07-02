@@ -23,7 +23,7 @@
 #include "cal3d/coresubmesh.h"
 #include "cal3d/coreskeleton.h"
 #include "cal3d/skeleton.h"
-
+#include <string.h>
 
  /*****************************************************************************/
 /** Constructs the hardware model instance.

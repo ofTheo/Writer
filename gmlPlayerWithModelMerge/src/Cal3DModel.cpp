@@ -37,6 +37,9 @@ bool Cal3DModel::setup( string name, string skeleton_file, string mesh_file )
 	
 	num_bones = model->getCoreSkeleton()->getNumBones();
 	
+	createInstance();
+	
+	
 	return true;
 }
 
@@ -59,6 +62,8 @@ bool Cal3DModel::createInstance()
 void Cal3DModel::updateAnimation( float elapsed )
 {
 	prev_cycle_times.clear();
+	action_just_finished.clear();
+	prev_root_bone_position = getRootBonePosition();
 	// update previous animation times
 	list<CalAnimationCycle *> cycles = instance->getMixer()->getAnimationCycle();
 	for  ( list<CalAnimationCycle *> ::iterator it = cycles.begin();
@@ -189,22 +194,17 @@ void Cal3DModel::draw( bool wireframe, float scale )
 				int faceCount;
 				faceCount = pCalRenderer->getFaces(&meshFaces[0][0]);
 				
-/*				glColor3f( 0,0,0 );
-				glBegin( GL_POINTS );*/
 				ofPushMatrix();
-				ofSetColor( 0,0,0 );
-/*				for ( int i=0; i<faceCount; i++ )
-				{
-//					glVertex3fv( meshVertices[i] );
-					for ( int j=0; j<3; j++ )
-					{
-						ofLine(meshVertices[meshFaces[i][j]][0]*scale,		meshVertices[meshFaces[i][j]][2]*scale, 
-							   meshVertices[meshFaces[i][(j+1)%3]][0]*scale,meshVertices[meshFaces[i][(j+1)%3]][2]*scale );
-					}
-					printf("%7.3f %7.3f %7.3f\n", meshVertices[i][0], meshVertices[i][1], meshVertices[i][2] );
-				}*/
+				ofPushStyle();
 				ofEnableAlphaBlending();
-				glColor4f( 0,0,0,0.2f );
+				ofStyle style = ofGetStyle();
+				float red = (float)style.color.r/255;
+				float green = (float)style.color.g/255;
+				float blue = (float)style.color.b/255;
+				float alpha = (float)style.color.a/255;
+				printf("setting color %f %F %f %f\n", red, green, blue, alpha );
+				glColor4f( red,green,blue,alpha*(wireframe?0.3f:1.0f) );
+				
 				glPushAttrib( GL_DEPTH_BUFFER_BIT );
 				glDepthMask( GL_TRUE );
 				//glColor4f( 0,0,0,1 );
@@ -240,6 +240,7 @@ void Cal3DModel::draw( bool wireframe, float scale )
 				}
 				glPopAttrib();
 				
+				ofPopStyle();				
 				ofPopMatrix();
 //				glEnd();
 				// [ render the faces with the graphic-API here ]
@@ -363,14 +364,26 @@ bool Cal3DModel::loadAnimation( const string& anim_file, const string& anim_name
 	return true;
 }
 
-void Cal3DModel::startAnimation( string name, float delay, float weight )
+void Cal3DModel::startCycle( string name, float weight )
 {
+	float delay = 0.0f;
 	int id = instance->getCoreModel()->getCoreAnimationId( name );
 	instance->getMixer()->blendCycle( id, weight, delay );
 }
 
-void Cal3DModel::stopAnimation( string name, float delay )
+
+void Cal3DModel::doAction( string name, float weight )
 {
+	float delay = 0.0f;
+	int id = instance->getCoreModel()->getCoreAnimationId( name );
+	callbacks.push_back( new AnimCallback( name, this ) );
+	model->getCoreAnimation(id)->registerCallback( callbacks.back(), 0.1f );
+	instance->getMixer()->executeAction(id, 0, 0, weight );
+}
+
+void Cal3DModel::stopCycle( string name )
+{
+	float delay = 0.0f;
 	int id = instance->getCoreModel()->getCoreAnimationId( name );
 	instance->getMixer()->clearCycle( id, delay );
 }
@@ -411,3 +424,54 @@ bool Cal3DModel::animationDidLoop( string name, CalVector* root_pos )
 }
 
 
+bool Cal3DModel::actionDidFinish( string name, CalVector* root_pos )
+{
+	// found?
+	if ( action_just_finished.find(name)!=action_just_finished.end() )
+	{
+		if ( root_pos )
+			*root_pos = prev_root_bone_position;
+		return true;
+	}
+
+	return false;
+}
+
+CalVector Cal3DModel::getBonePosition( string bone )
+{
+	int id = model->getCoreSkeleton()->getCoreBoneId( bone );
+	if ( id == -1 )
+	{
+		printf("getBonePosition() couldn't get bone id for '%s'\n", bone.c_str() );
+		return CalVector();
+	}
+	return instance->getSkeleton()->getBone( id )->getTranslationAbsolute();
+	
+}
+
+
+void Cal3DModel::AnimCallback::AnimationComplete(CalModel *cal_model, void * userData)
+{
+//	printf("AnimationComplete callback fired: %s\n", name.c_str() );
+	model->actionComplete( name );
+}
+	
+
+
+void Cal3DModel::actionComplete( string name )
+{
+//	printf("actionComplete: %s\n", name.c_str() );
+	action_just_finished.insert( name );
+	for ( int i=0; i<callbacks.size() ;i++ )
+	{
+		if ( callbacks[i]->name == name )
+		{
+			int id = model->getCoreAnimationId(name);
+			model->getCoreAnimation(id)->removeCallback( callbacks[i] );
+			callbacks.erase( callbacks.begin()+i );
+			break;
+		}
+	}
+
+}
+	
