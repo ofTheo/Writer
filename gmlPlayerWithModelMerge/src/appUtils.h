@@ -18,13 +18,13 @@ static void loadGml(string gmlFile, simpleTag & tag, bool bSwapXY){
 	
 	if( xml.loadFile(gmlFile) ){
 	
-		int numStrokes = xml.getNumTags("GML:tag:drawing:stroke");
-		
-		printf("num strokes is %i\n", numStrokes);
 		
 		if( xml.pushTag("GML") ){
 			if( xml.pushTag("tag") ){
 				if( xml.pushTag("drawing") ){
+				
+					int numStrokes = xml.getNumTags("stroke");
+					printf("num strokes is %i\n", numStrokes);
 		
 					tag.strokes.assign(numStrokes, simpleStroke());
 					for(int k = 0; k < numStrokes; k++){
@@ -45,7 +45,6 @@ static void loadGml(string gmlFile, simpleTag & tag, bool bSwapXY){
 									tag.strokes[k].pts[j].y = xml.getValue("pt:y", 0.0f, j);								
 								}
 								tag.strokes[k].pts[j].t = xml.getValue("pt:t", 0.0f, j);
-								printf("adding point!\n");
 							}
 							xml.popTag();
 						}
