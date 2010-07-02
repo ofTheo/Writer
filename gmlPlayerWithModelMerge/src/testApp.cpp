@@ -51,6 +51,8 @@ void testApp::loadNewTag(string path){
 	tag.setPct(drawPct);
 	panel.setValueB("restart", false);	
 	printf("LOAD NEW TAG\n");
+	ease_speed = 0;
+	ease_target = 1;
 }
 
 //--------------------------------------------------------------
@@ -78,15 +80,23 @@ void testApp::update(){
 		// don't update if it's too uncomfortable
 		if ( tagger.getHandTargetDiscomfort() > 1.2f )
 		{
-			// too uncomfortable
+			ease_target = 0;
 		}
 		else
 		{
-			tag.setPct( ofClamp(drawPct, 0, 1) );
-			drawPct += panel.getValueF("drawSpeed");
-			if( drawPct >= 1.5 ){
-				drawPct = 0.0;
-			}
+			ease_target = 1;
+		}
+		// update ease speed
+		static const float EASE_ADJUST_RATE = 2.0f;
+		if ( ease_target > ease_speed )
+			ease_speed += min(ease_target-ease_speed,EASE_ADJUST_RATE*float(ofGetLastFrameTime()));
+		else  
+			ease_speed -= min(ease_speed-ease_target,EASE_ADJUST_RATE*float(ofGetLastFrameTime()));
+		
+		tag.setPct( ofClamp(drawPct, 0, 1) );
+		drawPct += panel.getValueF("drawSpeed")*ease_speed;
+		if( drawPct >= 1.5 ){
+			drawPct = 0.0;
 		}
 	}
 	
@@ -117,9 +127,9 @@ void testApp::draw(){
 	ofCircle(-0.5, 0.0, 0.1);
 
 	// tagger responds to ofSetColor :-)
-	ofSetColor( 0,0,0,255 );
+	ofSetColor( 128,128,128,255 );
 	// tagger must be drawn at 0,0,0 otherwise the setTagArmTarget() offsets get all fucked up
-	bool wireframe = true;
+	bool wireframe = false;
 	tagger.draw( wireframe );
 	
 	util_3d.end3dDrawing();

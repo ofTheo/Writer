@@ -47,6 +47,8 @@ class testApp : public ofBaseApp{
 		float z;	
 		CalVector root_pos;
 		IKTagger tagger;	
+	
+		float ease_speed, ease_target;
 };
 
 #endif
