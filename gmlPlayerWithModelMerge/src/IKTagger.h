@@ -9,13 +9,14 @@
 
 #pragma once
 
-#include "Cal3DModel.h";
+#include "Cal3DModel.h"
 #include "IKCharacter.h"
+#include "ofxXmlSettings.h"
 
 class IKTagger
 {
 public:
-	void setup( );
+	bool setup( string source_xml );
 	void update( float elapsed );
 	void draw( bool draw_debug= false );
 	

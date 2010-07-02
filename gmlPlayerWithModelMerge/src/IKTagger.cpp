@@ -42,30 +42,44 @@ const static string IDLE_ANIM = "idle";
 const static string SIDESTEP_L_ANIM = "sidestep_l";
 const static string SIDESTEP_R_ANIM = "sidestep_r";
 
-void IKTagger::setup()
+bool IKTagger::setup( string source_xml )
 {
-	bool loaded_model = model.setup( "test", "man_good/man_good.xsf", "man_good/man_goodMan.xmf" );
+	ofxXmlSettings data;
+	data.loadFile( source_xml );
+	data.pushTag("tagger");
+	
+	string path = data.getValue("path","");
+	// ensure path has '/' at end
+	if ( path.size()>0 && path.at(path.size()-1)!='/' )
+		path += "/";
+	string skeleton_file = data.getValue("skeleton","");
+	string mesh_file = data.getValue("mesh","");
+	bool loaded_model = model.setup( "tagger", path+skeleton_file, path+mesh_file );
 	//	bool loaded_model = model.setup( "doc", "doc/doctmp.csf", "doc/docmale.cmf" );
 	if ( !loaded_model )
 	{
 		printf("couldn't load model\n");
-		assert(false);
+		return false;
 	}
 	
-	model.loadAnimation( "man_good/man_goodWalk.xaf", WALK_ANIM );
-	model.loadAnimation( "man_good/man_goodIdle_baked.xaf", IDLE_ANIM );
-	model.loadAnimation( "man_good/man_goodSidestep_baked_l_2.xaf", SIDESTEP_L_ANIM );
-	model.loadAnimation( "man_good/man_goodSidestep_baked_r_2.xaf", SIDESTEP_R_ANIM );
+	data.pushTag("animations");
+	model.loadAnimation( path+data.getValue("walk", ""), WALK_ANIM );
+	model.loadAnimation( path+data.getValue("idle", ""), IDLE_ANIM );
+	model.loadAnimation( path+data.getValue("sidestep_l", ""), SIDESTEP_L_ANIM );
+	model.loadAnimation( path+data.getValue("sidestep_r", ""), SIDESTEP_R_ANIM );
+	data.popTag();
 
 	model.createInstance();
 	
 	model.startCycle( IDLE_ANIM, 0.2f );
 	
-	head = "Head";
-	tag_arm = "Hand.r";
-	other_arm = "Hand.l";
-	string root = "Root";
-	string neck = "Spine.1";
+	data.pushTag("bones");
+	head = data.getValue("head", "");
+	tag_arm = data.getValue("tag_arm", "");
+	other_arm = data.getValue("other_arm", "");
+	string root = data.getValue("root", "");
+	string neck = data.getValue("arm_torso_attach", "");
+	data.popTag();
 	
 	character.setup( model.getSkeleton(), /* auto follow root */ false );
 	//character.enableTargetFor( head, root );
@@ -78,6 +92,8 @@ void IKTagger::setup()
 	move_speed = 0.0f;
 	store_sidestep_start_root_pos = false;
 	sidestep_running = false;
+	
+	return true;
 }
 
 

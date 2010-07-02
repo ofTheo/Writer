@@ -1,0 +1,36 @@
+
+<tagger>
+
+	<!-- path -- all filenames are relative to this -->
+	<path>man_good/</path>
+
+	<!-- mesh file -->
+	<mesh>man_goodMan.xmf</mesh>
+	<!-- skeleton file -->
+	<skeleton>man_good.xsf</skeleton>
+
+	<!-- animations -->
+	<animations>
+		<walk>man_goodWalk.xaf</walk>
+		<idle>man_goodIdle_baked.xaf</idle>
+		<sidestep_l>man_goodSidestep_baked_l_2.xaf</sidestep_l>
+		<sidestep_r>man_goodSidestep_baked_r_2.xaf</sidestep_r>
+	</animations>
+	
+	<!-- important bones used in ik simulation -->
+	<bones>
+		<!-- root bone of the skeleton -->
+		<root>Root</root>
+		<!-- head bone -->
+		<head>Head</head>
+		<!-- end of the tag arm -->
+		<tag_arm>Hand.r</tag_arm>
+		<!-- end of the other (non-tagging) arm -->
+		<other_arm>Hand.l</other_arm>
+		<!-- the base bone where the arms attach to the torso -->
+		<arm_torso_attach>Spine.1</arm_torso_attach>
+	</bones>
+		
+
+</tagger>
+
