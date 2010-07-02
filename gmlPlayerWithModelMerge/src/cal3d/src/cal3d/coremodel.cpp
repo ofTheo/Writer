@@ -25,7 +25,7 @@
 #include "cal3d/corematerial.h"
 #include "cal3d/loader.h"
 #include "cal3d/saver.h"
-
+#include <string.h>
  /*****************************************************************************/
 /** Constructs the core model instance.
   *

@@ -9,8 +9,10 @@
 
 #pragma once
 
-#include "cal3d.h"
+#include "cal3d/cal3d.h"
+#include "cal3d/animcallback.h"
 #include "ofxVectorMath.h"
+#include <set>
 using namespace std;
 
 class Cal3DModel
@@ -23,7 +25,7 @@ public:
 	bool setup( string name, string skeleton_file, string mesh_file );
 	/// load animation from anim_file and bind it to the name anim_name; return true on success
 	bool loadAnimation( const string& anim_file, const string& anim_name );
-	/// instantiate the loaded model
+	/// instantiate the loaded model. do _AFTER_ loading animations.
 	bool createInstance();
 
 	/// reset skeleton to rest position
@@ -37,12 +39,17 @@ public:
 	void updateAnimation( float elapsed );
 	
 	
-	/// start the given animation, fading in
-	void startAnimation( string name, float fade_time=0, float weight=1.0f );
-	/// stop the given animation, fading out
-	void stopAnimation( string name, float fade_time=0 );
-	/// true if the given animation has just looped; put previous root position in prev_root_pos if non-NULL
+	/// start the given animation looping
+	void startCycle( string name, float weight=1.0f );
+	/// stop the given animation 
+	void stopCycle( string name );
+	/// play the given animation once
+	void doAction( string name, float weight=1.0f );
+	/// true if the given animation has just looped; 
+	/// if a loop has just happed put the previous root position in prev_root_pos if non-NULL
 	bool animationDidLoop( string name, CalVector* prev_root_pos=NULL );
+	/// true if the given animation has just finished
+	bool actionDidFinish( string name, CalVector* final_root_pos=NULL );
 
 	/// draw the model
 	void draw( bool wireframe = false, float scale = 1.0f );	
@@ -51,6 +58,8 @@ public:
 	
 	/// return the location of the root bone in skeleton space
 	CalVector getRootBonePosition();
+	/// return the location of the requested bone in skeleton space
+	CalVector getBonePosition( string bone_name );
 	
 	/// access to the skeleton
 	/// if updating bone position/orientation, call updateMesh to push changes
@@ -62,9 +71,12 @@ public:
 	/// rotate the given bone about x by the given angle
 	void rotateBoneX( int id, float amount );
 
+	/// callback for animation completion
+	void actionComplete( string name );
 	
 private:
 	
+
 	int num_bones;
 	
 	CalCoreModel* model;
@@ -76,5 +88,19 @@ private:
 	
 	// map of anim names to cycle times and root positions
 	map<string,pair<float,CalVector> > prev_cycle_times;
+	CalVector prev_root_bone_position;
+	set<string> action_just_finished;
+	
+	// callback
+	struct AnimCallback: CalAnimationCallback
+	{
+		AnimCallback( string _name, Cal3DModel* _model ): CalAnimationCallback() { name = _name; model = _model; }
+		virtual void AnimationUpdate(float anim_time,CalModel *model, void * userData) {};
+		virtual void AnimationComplete(CalModel *model, void * userData);
+		string name;
+		Cal3DModel* model;
+	};
+	vector<AnimCallback*> callbacks;
+
 	
 };

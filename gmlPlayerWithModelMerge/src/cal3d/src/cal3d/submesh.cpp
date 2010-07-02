@@ -16,6 +16,8 @@
 #include "cal3d/error.h"
 #include "cal3d/coresubmesh.h"
 
+#include <string.h>
+
 
 CalSubmesh::CalSubmesh(CalCoreSubmesh* coreSubmesh)
 {

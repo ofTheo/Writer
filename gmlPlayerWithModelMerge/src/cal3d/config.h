@@ -58,3 +58,6 @@
 
 /* Version number of package */
 #define VERSION "0.11.0"
+
+#include <string.h>
+
