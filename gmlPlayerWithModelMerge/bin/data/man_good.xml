@@ -1,7 +1,7 @@
 
 <tagger>
 
-	<!-- path -- all filenames are relative to this -->
+	<!-- path: all filenames are relative to this -->
 	<path>man_good/</path>
 
 	<!-- mesh file -->
@@ -11,10 +11,12 @@
 
 	<!-- animations -->
 	<animations>
-		<walk>man_goodWalk.xaf</walk>
+		<walk>man_goodWalk_baked.xaf</walk>
 		<idle>man_goodIdle_baked.xaf</idle>
-		<sidestep_l>man_goodSidestep_baked_l_2.xaf</sidestep_l>
-		<sidestep_r>man_goodSidestep_baked_r_2.xaf</sidestep_r>
+		<sidestep_l>man_goodSidestep_baked_l.xaf</sidestep_l>
+		<sidestep_r>man_goodSidestep_baked_r.xaf</sidestep_r>
+		<walk_to_turn>man_goodWalk_to_turn_baked.xaf</walk_to_turn>
+		<turn_to_walk>man_goodTurn_to_walk_baked.xaf</turn_to_walk>
 	</animations>
 	
 	<!-- important bones used in ik simulation -->

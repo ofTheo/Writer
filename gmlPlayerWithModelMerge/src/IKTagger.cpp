@@ -87,7 +87,7 @@ bool IKTagger::setup( string source_xml )
 	//character.disableTargetFor( other_arm );
 		
 	target_offset.set( 0, 0, 3.5 );
-	setRootPosition( CalVector(0,0,0) );
+	setRootPosition( CalVector(0,1,0) );
 	setTagArmTarget( ofxVec3f( 0,0,0 ) );
 	move_speed = 0.0f;
 	store_sidestep_start_root_pos = false;
