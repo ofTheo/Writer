@@ -230,7 +230,7 @@ void IKCharacter::setupMagicIgnoringRotationOffsets()
 }
 
 
-void IKCharacter::pushWorldPositions( bool re_solve )
+void IKCharacter::pushWorldPositions( bool re_solve, float weight )
 {
 //	skeleton->clearState();
 	CalCoreSkeleton* core_skeleton = skeleton->getCoreSkeleton();
@@ -266,6 +266,10 @@ void IKCharacter::pushWorldPositions( bool re_solve )
 		//printf("\n");
 	}
 	// now we have trails backtracking from leaves back to roots
+
+	// two-pass algorithm
+	map<int,CalQuaternion>   original_orientations;
+	map<int,CalQuaternion> unweighted_rotations;
 	
 	// start forwardtracking from the roots
 	vector<int> roots = skeleton->getCoreSkeleton()->getVectorRootCoreBoneId();
@@ -347,11 +351,21 @@ void IKCharacter::pushWorldPositions( bool re_solve )
 				
 			// apply the rotation
 			CalBone* bone_to_set = parent_bone;
+			int bone_to_set_id = bone_to_set->getCoreBone()->getId();
 			rot_cal *= magic_ignoring_rotation_offset[bone_to_set->getCoreBone()->getId()];
-			//bone_to_set->blendState( 0.5f, bone_to_set->getTranslation(),bone_to_set->getRotation()*rot_cal );
-			bone_to_set->setRotation( bone_to_set->getRotation()*rot_cal );
-			//printf("setting a rotation for %s\n", bone_to_set->getCoreBone()->getName().c_str() );
-			// calculates children also
+			//bone_to_set->blendState( weight, bone_to_set->getTranslation(),bone_to_set->getRotation()*rot_cal );
+			// store original
+			if ( original_orientations.find( bone_to_set_id ) == original_orientations.end() )
+			{
+				original_orientations[bone_to_set_id] = bone_to_set->getRotation();
+				unweighted_rotations[bone_to_set_id] = CalQuaternion();
+			}
+			// store target
+			unweighted_rotations[bone_to_set_id] *= rot_cal;
+			// continue solving
+			bone_to_set->setRotation( bone_to_set->getRotation() * rot_cal );
+
+			// calculate absolute + children absolute
 			bone_to_set->calculateState();
 			debug_cached_rotations[bone_to_set->getCoreBone()->getId()] = rot_cal;
 			
@@ -396,10 +410,28 @@ void IKCharacter::pushWorldPositions( bool re_solve )
 		}
 	}
 
-	// update skeleton - done during the push
-	//skeleton->calculateState();
 	
-	skeleton->lockState();
+	// second pass 
+	{
+		// actually do the rotations
+		for ( map<int,CalQuaternion>::iterator it = original_orientations.begin();
+			 it != original_orientations.end();
+			 ++it )
+		{
+			assert( unweighted_rotations.find( (*it).first ) != unweighted_rotations.end() );
+
+			CalQuaternion original_orientation = (*it).second;
+			CalQuaternion unweighted_rotation = unweighted_rotations[(*it).first];
+			CalQuaternion weighted_rotation;
+			weighted_rotation.blend( weight, unweighted_rotation );
+			skeleton->getBone( (*it).first )->setRotation( original_orientation*weighted_rotation );
+		}
+
+		// update skeleton
+		skeleton->calculateState();
+	}				   
+	
+	//skeleton->lockState();
 
 }
 

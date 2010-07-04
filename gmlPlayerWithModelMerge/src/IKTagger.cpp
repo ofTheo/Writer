@@ -120,7 +120,9 @@ void IKTagger::reset()
 	sidestep_running = false;
 
 	model.clearAllAnimation();
-	model.startCycle( IDLE_ANIM );
+	
+	ik_weight = 0.0f;
+	ik_target_weight = 0.0f;
 	
 	state = TS_WAITING;
 	
@@ -135,10 +137,10 @@ void IKTagger::startWalkon( float _tag_start_x )
 	{
 		x -= walk_cycle_dx;
 	}*/
+	reset();
 	
+	model.startCycle( WALK_ANIM );
 	setRootPosition( WALK_START_POS );
-	model.stopCycle( IDLE_ANIM );
-	model.startCycle( WALK_ANIM, 1.0f );
 	
 	tag_start_x = _tag_start_x;
 
@@ -186,6 +188,7 @@ void IKTagger::setRootPosition( CalVector new_root_pos )
 void IKTagger::update( float elapsed )
 {
 	bool do_ik = false; 
+	bool sidestep_allowed = false;
 	model.updateAnimation( elapsed );
 		
 	switch( state )
@@ -218,47 +221,64 @@ void IKTagger::update( float elapsed )
 			
 		case TS_WALK_TO_TURN:
 		{
-			if ( store_turn_start_root_pos )
-			{
-				turn_start_root_pos = model.getRootBonePosition();
-				store_turn_start_root_pos = false;
-			}
-			do_ik = true;
+			//do_ik = true;
+			//ik_target_weight = 1.0f;
 			// todo: blend in the ik solving from 0
-			CalVector finish_root_pos;
-			if ( model.actionDidFinish( WALK_TO_TURN_ANIM, &finish_root_pos ) )
+			if ( model.actionDidFinish( WALK_TO_TURN_ANIM ) )
 			{
 				// animation finished: update root position from animation displacement
-				setRootPosition( root_pos+(finish_root_pos-turn_start_root_pos) );
+				setRootPosition( root_pos+walk_to_turn_root_displacement );
 				// now tagging 
 				state = TS_TAGGING;
 				printf(" --> tagging\n");
 			}
-				
-		}
-			
-		case TS_TAGGING:
-		{
-			// check for sidestep
-			CalVector finish_root_pos;
-			if ( sidestep_running && model.actionDidFinish( SIDESTEP_L_ANIM, &finish_root_pos ) ||
-				model.actionDidFinish( SIDESTEP_R_ANIM, &finish_root_pos )  )
-			{
-				// sidestep finished: update root position from sidestep displacement
-				sidestep_running = false;
-				setRootPosition( root_pos+(finish_root_pos-sidestep_start_root_pos) );
-			}
-			if ( store_sidestep_start_root_pos )
-			{
-				sidestep_start_root_pos = model.getRootBonePosition();
-				store_sidestep_start_root_pos = false;
-			}
-			
-			do_ik = true;
 		}
 			break;
 			
+		case TS_TAGGING:
+		{
+			do_ik = true;
+			if ( ik_weight > 0.9f )
+				sidestep_allowed = true;
+			ik_target_weight = 1.0f;
+
+			// check for sidestep
+			// if finished, update root position from sidestep displacement
+			if ( sidestep_running && model.actionDidFinish( SIDESTEP_L_ANIM ) )
+			{
+				printf("sidestep l finished\n");
+				sidestep_running = false;
+				setRootPosition( root_pos+sidestep_l_root_displacement );
+			}
+			if ( sidestep_running && model.actionDidFinish( SIDESTEP_R_ANIM )  )
+			{
+				printf("sidestep l finished\n");
+				sidestep_running = false;
+				setRootPosition( root_pos+sidestep_r_root_displacement );
+			}
 			
+		}
+			break;
+			
+
+
+		case TS_TURN_TO_WALK:
+		{
+			do_ik = true;
+			ik_target_weight = 0.0f;
+			
+			// check if turn is finished the walkoff
+			if ( model.actionDidFinish( TURN_TO_WALK_ANIM ) )
+			{
+				model.stopCycle( IDLE_ANIM );
+				model.startCycle( WALK_ANIM );
+				state = TS_WALKOFF;
+			}
+			
+			
+			
+		}
+			break;
 			
 		case TS_WALKOFF:
 		{
@@ -275,9 +295,20 @@ void IKTagger::update( float elapsed )
 	
 	if ( do_ik )
 	{
+		// update ik weight
+		float inc = elapsed*1.0f;
+		if ( ik_weight > ik_target_weight )
+			ik_weight -= min(inc,ik_weight-ik_target_weight);
+		else
+			ik_weight += min(inc,ik_target_weight-ik_weight);
+		// ease in/out
+		float ik_weight_eased = 0.5f+0.5f*cosf((1.0f-ik_weight)*PI);
+		//printf("ik weight: target %7.5f, curr %7.5f\n", ik_target_weight, ik_weight );
+		//ik_weight += (ik_target_weight-ik_weight)*speed;
+		
 		character.pullFromModel();
-		character.solve( 5 );
-		character.pushToModel( true );
+		character.solve( 2 );
+		character.pushToModel( true, ik_weight_eased );
 		model.updateMesh();
 		
 		CalVector arm_actual_position = model.getBonePosition( tag_arm );
@@ -287,10 +318,10 @@ void IKTagger::update( float elapsed )
 		bone_target_delta.y *= 0.5f;
 		float distance = bone_target_delta.length();
 		float discomfort = distance/COMFORT_DISTANCE_THRESH;
-		if ( discomfort > 1.0f && !sidestep_running )
+		if ( discomfort > 1.0f && !sidestep_running && sidestep_allowed )
 		{
 			// need to move feet
-			store_sidestep_start_root_pos = true;
+			printf("starting sidestep\n");
 			model.doAction( bone_target_delta.x<0?SIDESTEP_L_ANIM:SIDESTEP_R_ANIM, 1.0f );
 			sidestep_running = true;
 		}

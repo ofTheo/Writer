@@ -67,5 +67,8 @@ private:
 
 	bool sidestep_running;
 	
+	float ik_target_weight;
+	float ik_weight;
+	
 };
 

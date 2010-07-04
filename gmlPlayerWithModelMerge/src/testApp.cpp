@@ -73,7 +73,7 @@ void testApp::update(){
 		panel.setValueB("restart", false);
 	}
 
-	// update the tagger's position
+	// update the tagger's position and pose
 	tagger.update( ofGetLastFrameTime() );
 	
 	if( lister.selectedHasChanged() ){
@@ -142,7 +142,7 @@ void testApp::draw(){
 	// tagger responds to ofSetColor :-)
 	ofSetColor( 64,64,64,255 );
 	// tagger must be drawn at 0,0,0 otherwise the setTagArmTarget() offsets get all fucked up
-	bool wireframe = false;
+	bool wireframe = true;
 	tagger.draw( wireframe );
 	
 	// turn off the z-buffer

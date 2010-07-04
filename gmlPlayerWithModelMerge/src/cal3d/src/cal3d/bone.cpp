@@ -45,6 +45,7 @@ CalBone::CalBone(CalCoreBone* coreBone)
 
 void CalBone::blendState(float weight, const CalVector& translation, const CalQuaternion& rotation)
 {
+
   if(m_accumulatedWeightAbsolute == 0.0f)
   {
     // it is the first state, so we can just copy it into the bone state
@@ -217,8 +218,9 @@ void CalBone::setCoreStateRecursive()
   * afterwards.
   *****************************************************************************/
 
-void CalBone::setRotation(const CalQuaternion& rotation)
+void CalBone::setRotation(const CalQuaternion& rotation )
 {
+//	printf("setting rotation on bone %s; old weight %f (abs %f)\n", getCoreBone()->getName().c_str(), m_accumulatedWeight, m_accumulatedWeightAbsolute );
   m_rotation = rotation;
   m_accumulatedWeightAbsolute = 1.0f;
   m_accumulatedWeight = 1.0f ;

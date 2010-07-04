@@ -45,7 +45,7 @@ public:
 	/// fetch the current model pose as a start point for IK
 	void pullFromModel() { setupMagicIgnoringRotationOffsets(); /* does a pullWorldPositions internally */ }
 	/// push the found IK solution pose to the model
-	void pushToModel( bool do_re_solve=false ) { pushWorldPositions( do_re_solve ); }
+	void pushToModel( bool do_re_solve=false, float weight = 1.0f ) { pushWorldPositions( do_re_solve, weight ); }
 	
 	static int debug_bone;
 
@@ -54,7 +54,7 @@ private:
 	void pullWorldPositions() { pullWorldPositions( -1, -1 ); }
 	/// push world positions to Cal3D skeleton
 	/// if re_solve is true, try to re-solve the ik where possible
-	void pushWorldPositions( bool re_solve=false );
+	void pushWorldPositions( bool re_solve=false , float weight=1.0f );
 	
 	// pull world positions starting at leaf_bone_id and working up to root_id
 	// if leaf_bone_id == -1, use all leaves
