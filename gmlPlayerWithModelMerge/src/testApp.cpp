@@ -83,6 +83,7 @@ void testApp::update(){
 	
 	// update the tag
 	if( tag.totalNumPoints() ){
+		
 		// base on the comfort level of the tagger:
 		// don't update if it's too uncomfortable
 		if ( tagger.getHandTargetDiscomfort() > 1.2f )
@@ -99,11 +100,17 @@ void testApp::update(){
 			ease_speed += min(ease_target-ease_speed,EASE_ADJUST_RATE*float(ofGetLastFrameTime()));
 		else  
 			ease_speed -= min(ease_speed-ease_target,EASE_ADJUST_RATE*float(ofGetLastFrameTime()));
-		
+
+		if ( drawPct > 1.0f )
+			// walk off
+			tagger.startWalkoff();
 		tag.setPct( ofClamp(drawPct, 0, 1) );
 		drawPct += panel.getValueF("drawSpeed")*ease_speed;
-		if( drawPct >= 1.5 ){
+		
+		if ( tagger.isFinished() )
+		{
 			drawPct = 0.0;
+			tagger.startWalkon( 0 );
 		}
 	}
 	
@@ -142,7 +149,7 @@ void testApp::draw(){
 	// tagger responds to ofSetColor :-)
 	ofSetColor( 64,64,64,255 );
 	// tagger must be drawn at 0,0,0 otherwise the setTagArmTarget() offsets get all fucked up
-	bool wireframe = true;
+	bool wireframe = false;
 	tagger.draw( wireframe );
 	
 	// turn off the z-buffer
@@ -155,10 +162,12 @@ void testApp::draw(){
 	panel.draw();
 	
 	// draw info
+	bool draw_info = true;
+	if ( draw_info )
 	{
 		// now draw some debugging stuff
 		ofSetColor( 0x000000 );
-		ofDrawBitmapString( "UI : THEO SHOULD READ THIS  :-P\n"
+		ofDrawBitmapString( "UI :\n"
 						   "; toggle mouse move eye rotation    up/down/left/right/pgup/pgdn move eye pos\n"
 						   , 400, 23 );
 		ofxVec3f tt = tagger.getTagArmTarget();

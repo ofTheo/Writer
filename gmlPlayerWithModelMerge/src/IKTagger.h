@@ -34,8 +34,13 @@ public:
 	float getHandTargetDiscomfort() { return last_discomfort; }
 	
 	
+	/// returns true when we're finished
+	bool isFinished();
+	
 	/// start walking on; the tag will be draw start at the given x-pos
 	void startWalkon( float tag_start_x );
+	/// start walking off
+	void startWalkoff();
 	
 	/// restart
 	void reset();
@@ -55,8 +60,10 @@ private:
 
 	CalVector sidestep_l_root_displacement, sidestep_r_root_displacement;
 	CalVector walk_to_turn_root_displacement, turn_to_walk_root_displacement;
+	CalVector walk_root_displacement;
 
-	typedef enum _TaggerState{ TS_WAITING, TS_WALKON, TS_WALK_TO_TURN, TS_TAGGING, TS_TURN_TO_WALK, TS_WALKOFF } TaggerState;
+	typedef enum _TaggerState{ TS_WAITING, TS_WALKON, TS_WALK_TO_TURN, TS_TAGGING, 
+		TS_TURN_TO_WALK, TS_START_WALKOFF, TS_WALKOFF, TS_FINISHED } TaggerState;
 	TaggerState state;
 	
 	float walk_cycle_dx;
@@ -66,6 +73,8 @@ private:
 	float tag_start_x;
 
 	bool sidestep_running;
+	
+	bool should_walk_off;
 	
 	float ik_target_weight;
 	float ik_weight;

@@ -107,7 +107,7 @@ void Util3d::keyPressed( int key )
 		printf("eye at %f %f %f heading %f pitch %f\n", eye_pos.x, eye_pos.y, eye_pos.z, heading, pitch );
 	else if ( key == ',' || key == OF_KEY_UP )
 		moveEye( 0, 0, move_speed );
-	else if ( key == 'ooooooooooooo' || key == OF_KEY_DOWN )
+	else if ( key == 'o' || key == OF_KEY_DOWN )
 		moveEye( 0, 0, -move_speed );
 	else if ( key == 'a' || key == OF_KEY_LEFT )
 		moveEye( move_speed, 0, 0 );

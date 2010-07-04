@@ -44,9 +44,10 @@ const static string SIDESTEP_R_ANIM = "sidestep_r";
 const static string TURN_TO_WALK_ANIM = "turn_to_walk";
 const static string WALK_TO_TURN_ANIM = "walk_to_turn";
 
-static const float SCREEN_VISIBLE_LEFT = -5;
+static const float SCREEN_VISIBLE_LEFT = 15;
+static const float SCREEN_VISIBLE_RIGHT = -15;
 
-const static ofxVec3f WALK_START_POS = ofxVec3f( 10, 0, 0 );
+const static ofxVec3f WALK_START_POS = ofxVec3f( SCREEN_VISIBLE_LEFT, 0, 0 );
 
 bool IKTagger::setup( string source_xml )
 {
@@ -96,11 +97,11 @@ bool IKTagger::setup( string source_xml )
 		
 	target_offset.set( 0, 0, 3.5 );
 
-	// determine x displacement of walk cycle
-	CalVector root_displacement = model.getAnimationRootDisplacement( WALK_ANIM );
-	walk_cycle_dx = root_displacement.x;
+	// determine displacement of walk cycle
+	walk_root_displacement = model.getAnimationRootDisplacement( WALK_ANIM );
+	walk_cycle_dx = walk_root_displacement.x;
 
-	// determine x displacement of sidestep and walk-to-turn/turn-to-walk animations
+	// determine displacement of sidestep and walk-to-turn/turn-to-walk animations
 	sidestep_l_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_L_ANIM );
 	sidestep_r_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_R_ANIM );
 	walk_to_turn_root_displacement = model.getAnimationRootDisplacement( WALK_TO_TURN_ANIM );
@@ -123,6 +124,8 @@ void IKTagger::reset()
 	
 	ik_weight = 0.0f;
 	ik_target_weight = 0.0f;
+	last_discomfort = 100.0f;
+	should_walk_off = false;
 	
 	state = TS_WAITING;
 	
@@ -137,13 +140,25 @@ void IKTagger::startWalkon( float _tag_start_x )
 	{
 		x -= walk_cycle_dx;
 	}*/
+	tag_start_x = _tag_start_x;
 	reset();
 	
-	model.startCycle( WALK_ANIM );
-	setRootPosition( WALK_START_POS );
+	ofxVec3f walk_start = WALK_START_POS;
+	// adjust so that we end a walk cycle in the right place
+	float dx = tag_start_x - walk_start.x;
+	// get the remainder when we divide dx by the walk cycle dx
+	// this is how much we will overstep
+	float dx_rem = fmod( dx, walk_cycle_dx );
+	// now include the walk_to_turn displacement
+	dx_rem += walk_to_turn_root_displacement.x;
+	// add on to our start position
+	walk_start.x += dx_rem;
+	// add on a random amount
+	walk_start.x += ofRandom( 0, 1 );
 	
-	tag_start_x = _tag_start_x;
-
+	model.startCycle( WALK_ANIM );
+	setRootPosition( walk_start );
+	
 	state = TS_WALKON;
 }
 
@@ -185,9 +200,17 @@ void IKTagger::setRootPosition( CalVector new_root_pos )
 	setTagArmTarget( tag_arm_target );
 }	
 
+
+void IKTagger::startWalkoff()
+{
+	should_walk_off = true;
+}
+
+
 void IKTagger::update( float elapsed )
 {
 	bool do_ik = false; 
+	float ik_fade_speed = 1.0f;
 	bool sidestep_allowed = false;
 	model.updateAnimation( elapsed );
 		
@@ -219,11 +242,12 @@ void IKTagger::update( float elapsed )
 		}			
 			break;
 			
+		
 		case TS_WALK_TO_TURN:
 		{
-			//do_ik = true;
-			//ik_target_weight = 1.0f;
-			// todo: blend in the ik solving from 0
+			do_ik = false;
+			ik_target_weight = 1.0f;
+			ik_fade_speed = 0.33f;
 			if ( model.actionDidFinish( WALK_TO_TURN_ANIM ) )
 			{
 				// animation finished: update root position from animation displacement
@@ -257,6 +281,15 @@ void IKTagger::update( float elapsed )
 				setRootPosition( root_pos+sidestep_r_root_displacement );
 			}
 			
+			// wait for sidesteps to finish
+			if ( !sidestep_running && should_walk_off )
+			{
+				state = TS_TURN_TO_WALK;
+				model.doAction( TURN_TO_WALK_ANIM );
+				sidestep_allowed = false;
+				
+				printf(" --> turn_to_walk\n") ;
+			}
 		}
 			break;
 			
@@ -270,22 +303,37 @@ void IKTagger::update( float elapsed )
 			// check if turn is finished the walkoff
 			if ( model.actionDidFinish( TURN_TO_WALK_ANIM ) )
 			{
+				setRootPosition( root_pos+turn_to_walk_root_displacement );
 				model.stopCycle( IDLE_ANIM );
 				model.startCycle( WALK_ANIM );
+				// push through the new cycle immediately
+				model.updateAnimation( 0.000001f );
 				state = TS_WALKOFF;
+				do_ik = false;
+				printf(" --> walkoff\n");
 			}
-			
-			
-			
 		}
 			break;
+			
 			
 		case TS_WALKOFF:
 		{
-			
+			if ( model.animationDidLoop( "walk" ) )
+			{
+				printf("-- walk looped\n");
+				setRootPosition( root_pos + walk_root_displacement );
+				if ( root_pos.x < SCREEN_VISIBLE_RIGHT )
+				{
+					state = TS_FINISHED;
+					model.stopCycle( WALK_ANIM );
+				}
+			}
 		}
 			break;
 			
+
+		case TS_FINISHED:
+			break;
 			
 			
 		default:
@@ -296,7 +344,7 @@ void IKTagger::update( float elapsed )
 	if ( do_ik )
 	{
 		// update ik weight
-		float inc = elapsed*1.0f;
+		float inc = elapsed*ik_fade_speed;
 		if ( ik_weight > ik_target_weight )
 			ik_weight -= min(inc,ik_weight-ik_target_weight);
 		else
@@ -328,7 +376,7 @@ void IKTagger::update( float elapsed )
 		last_discomfort = discomfort;
 	}
 	else
-		last_discomfort = 1.5f;
+		last_discomfort = 100.0f;
 }
 
 void IKTagger::draw( bool draw_debug )
@@ -353,3 +401,8 @@ void IKTagger::draw( bool draw_debug )
 	glPopMatrix();
 }
 
+
+bool IKTagger::isFinished()
+{
+	return state == TS_FINISHED; 
+}

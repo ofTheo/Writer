@@ -395,6 +395,10 @@ void Cal3DModel::stopCycle( string name )
 {
 	float delay = 0.0f;
 	int id = instance->getCoreModel()->getCoreAnimationId( name );
+	// remove from cycle array
+	if ( prev_cycle_times.find( name ) != prev_cycle_times.end() )
+		prev_cycle_times.erase( prev_cycle_times.find( name ) );
+	
 	instance->getMixer()->clearCycle( id, delay );
 }
 
