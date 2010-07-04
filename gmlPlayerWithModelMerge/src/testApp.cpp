@@ -16,7 +16,7 @@ void testApp::setup(){
 
 	panel.addSlider("shiftX", "shiftX", 0, -400.0, 400.0, false);
 	panel.addSlider("shiftY", "shiftY", 0, -400.0, 400.0, false);
-	panel.addSlider("rotate 3D", "rotate", 0, -360.0, 360.0, false);
+	// NO: use the Util3d interface // panel.addSlider("rotate 3D", "rotate", 0, -360.0, 360.0, false);
 	panel.addChartPlotter("drawPct", guiStatVarPointer("drawPct", &drawPct, GUI_VAR_FLOAT, true, 2), 200, 100, 200, -0.2, 2.0);
 
 	panel.loadSettings("panel.xml");
@@ -59,6 +59,7 @@ void testApp::loadNewTag(string path){
 	panel.setValueB("restart", false);	
 	printf("LOAD NEW TAG\n");
 	
+	ease_speed = 0;
 	tagger.startWalkon( 0 );
 }
 
@@ -133,8 +134,6 @@ void testApp::draw(){
 	
 	util_3d.begin3dDrawing( draw_ground_plane );
 	
-//	ofRotate(panel.getValueF("rotate"), 0, 1, 0);
-
 	// turn on the z-buffer
 	glEnable( GL_DEPTH_TEST );
 	
