@@ -33,6 +33,13 @@ public:
 	/// when >1 a sidestep animation will be triggered
 	float getHandTargetDiscomfort() { return last_discomfort; }
 	
+	
+	/// start walking on; the tag will be draw start at the given x-pos
+	void startWalkon( float tag_start_x );
+	
+	/// restart
+	void reset();
+	
 private:
 	
 	// move the root by the given amount relative to the current root pos
@@ -45,14 +52,19 @@ private:
 	
 	ofxVec3f target_offset;
 	CalVector root_pos;
-	CalVector root_target_pos;
-	CalVector sidestep_start_root_pos;
+
+	CalVector sidestep_l_root_displacement, sidestep_r_root_displacement;
+	CalVector walk_to_turn_root_displacement, turn_to_walk_root_displacement;
+
+	typedef enum _TaggerState{ TS_WAITING, TS_WALKON, TS_WALK_TO_TURN, TS_TAGGING, TS_TURN_TO_WALK, TS_WALKOFF } TaggerState;
+	TaggerState state;
 	
-	float move_speed;
+	float walk_cycle_dx;
 	
 	float last_discomfort;
+	
+	float tag_start_x;
 
-	bool store_sidestep_start_root_pos;
 	bool sidestep_running;
 	
 };

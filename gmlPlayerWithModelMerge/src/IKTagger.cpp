@@ -44,6 +44,10 @@ const static string SIDESTEP_R_ANIM = "sidestep_r";
 const static string TURN_TO_WALK_ANIM = "turn_to_walk";
 const static string WALK_TO_TURN_ANIM = "walk_to_turn";
 
+static const float SCREEN_VISIBLE_LEFT = -5;
+
+const static ofxVec3f WALK_START_POS = ofxVec3f( 10, 0, 0 );
+
 bool IKTagger::setup( string source_xml )
 {
 	ofxXmlSettings data;
@@ -91,33 +95,54 @@ bool IKTagger::setup( string source_xml )
 	//character.disableTargetFor( other_arm );
 		
 	target_offset.set( 0, 0, 3.5 );
-	setRootPosition( CalVector(0,1,0) );
-	setTagArmTarget( ofxVec3f( 0,0,0 ) );
-	move_speed = 0.0f;
-	store_sidestep_start_root_pos = false;
-	sidestep_running = false;
 
+	// determine x displacement of walk cycle
+	CalVector root_displacement = model.getAnimationRootDisplacement( WALK_ANIM );
+	walk_cycle_dx = root_displacement.x;
 
-	// determine length of walk cycle
-	CalBone* root_bone = model.getBone( root );
-	CalAnimation* walk_anim = model.
+	// determine x displacement of sidestep and walk-to-turn/turn-to-walk animations
+	sidestep_l_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_L_ANIM );
+	sidestep_r_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_R_ANIM );
+	walk_to_turn_root_displacement = model.getAnimationRootDisplacement( WALK_TO_TURN_ANIM );
+	turn_to_walk_root_displacement = model.getAnimationRootDisplacement( TURN_TO_WALK_ANIM );
 
-
+	// reset
+	reset();
+	
 
 	return true;
 }
 
-
-void IKTagger::startWalkOn( float tag_start_x )
+void IKTagger::reset()
 {
-	// move to the left of the screen
+	setRootPosition( WALK_START_POS );
+	setTagArmTarget( ofxVec3f( 0,0,0 ) );
+	sidestep_running = false;
+
+	model.clearAllAnimation();
+	model.startCycle( IDLE_ANIM );
+	
+	state = TS_WAITING;
+	
+}
+
+
+void IKTagger::startWalkon( float _tag_start_x )
+{
+/*	// move to the left of the screen
 	float x = tag_start_x;
 	while ( x > SCREEN_VISIBLE_LEFT )
 	{
 		x -= walk_cycle_dx;
-	}
+	}*/
+	
+	setRootPosition( WALK_START_POS );
+	model.stopCycle( IDLE_ANIM );
+	model.startCycle( WALK_ANIM, 1.0f );
+	
+	tag_start_x = _tag_start_x;
 
-
+	state = TS_WALKON;
 }
 
 
@@ -127,7 +152,7 @@ void IKTagger::setTagArmTarget( ofxVec3f target )
 	character.setTarget( tag_arm, target_relative+target_offset );
 	// work out x distance
 /*	float delta_x = target.x-root.x;
-	if ( delta_x > */
+	if ( delta_x > */	
 	
 	// comfortable?
 /*	float relative_x = target_relative.x - COMFORT_CENTRE.x;
@@ -137,13 +162,6 @@ void IKTagger::setTagArmTarget( ofxVec3f target )
 	float discomfort = fabsf(x_discomfort) + y_discomfort*y_discomfort;*/
 	
 	
-}
-
-
-void IKTagger::moveRootRelativeX( float x )
-{
-	root_target_pos = root_pos;
-	root_target_pos.x += x;
 }
 
 
@@ -167,67 +185,120 @@ void IKTagger::setRootPosition( CalVector new_root_pos )
 
 void IKTagger::update( float elapsed )
 {
-	// deal with moving root
-	CalVector target_delta = root_target_pos-root_pos;
-	float target_delta_length = target_delta.length();
-	if ( target_delta_length > 0.1f )
-	{
-		// need to move root
-		CalVector direction = target_delta / target_delta_length;
-		setRootPosition( root_pos+direction*SLIDE_SPEED*move_speed*elapsed );
-	}
-	
+	bool do_ik = false; 
 	model.updateAnimation( elapsed );
-	CalVector finish_root_pos;
-	if ( sidestep_running && model.actionDidFinish( SIDESTEP_L_ANIM, &finish_root_pos ) ||
-		model.actionDidFinish( SIDESTEP_R_ANIM, &finish_root_pos )  )
+		
+	switch( state )
 	{
-		sidestep_running = false;
-	/*	CalVector& ss = sidestep_start_root_pos;
-		CalVector& f = finish_root_pos;
-		printf("sidestep_start_root_pos %f %f %f, finish_root_pos %f %f %f\n", ss.x, ss.y, ss.z, f.x, f.y, f.z );*/
-		setRootPosition( root_pos+(finish_root_pos-sidestep_start_root_pos) );
-	}
-	if ( store_sidestep_start_root_pos )
-	{
-		sidestep_start_root_pos = model.getRootBonePosition();
-		store_sidestep_start_root_pos = false;
-	}
+		case TS_WAITING:
+			break;
 	
-		/*
-	CalVector loop_root_pos;
-	if ( model.animationDidLoop( "walk", &loop_root_pos ) )
-	{
-		printf("-- loop\n");
-		root_pos += (loop_root_pos)-model.getRootBonePosition();
-	}*/
-	character.pullFromModel();
-	character.solve( 5 );
-	character.pushToModel( true );
-	model.updateMesh();
+		case TS_WALKON:
+		{
+			// check for walk cycle
+			CalVector loop_root_pos;
+			if ( model.animationDidLoop( "walk", &loop_root_pos ) )
+			{
+				printf("-- walk looped\n");
+				root_pos += (loop_root_pos)-model.getRootBonePosition();
+				if ( fabsf(root_pos.x-tag_start_x) < fabsf(walk_cycle_dx) )
+				{
+					// stop the walk
+					model.stopCycle( WALK_ANIM );
+					model.startCycle( IDLE_ANIM );
+					model.doAction( WALK_TO_TURN_ANIM );
+					// turning
+					state = TS_WALK_TO_TURN;
+					printf(" --> turning\n");
+				}
+			}
+
+		}			
+			break;
+			
+		case TS_WALK_TO_TURN:
+		{
+			if ( store_turn_start_root_pos )
+			{
+				turn_start_root_pos = model.getRootBonePosition();
+				store_turn_start_root_pos = false;
+			}
+			do_ik = true;
+			// todo: blend in the ik solving from 0
+			CalVector finish_root_pos;
+			if ( model.actionDidFinish( WALK_TO_TURN_ANIM, &finish_root_pos ) )
+			{
+				// animation finished: update root position from animation displacement
+				setRootPosition( root_pos+(finish_root_pos-turn_start_root_pos) );
+				// now tagging 
+				state = TS_TAGGING;
+				printf(" --> tagging\n");
+			}
+				
+		}
+			
+		case TS_TAGGING:
+		{
+			// check for sidestep
+			CalVector finish_root_pos;
+			if ( sidestep_running && model.actionDidFinish( SIDESTEP_L_ANIM, &finish_root_pos ) ||
+				model.actionDidFinish( SIDESTEP_R_ANIM, &finish_root_pos )  )
+			{
+				// sidestep finished: update root position from sidestep displacement
+				sidestep_running = false;
+				setRootPosition( root_pos+(finish_root_pos-sidestep_start_root_pos) );
+			}
+			if ( store_sidestep_start_root_pos )
+			{
+				sidestep_start_root_pos = model.getRootBonePosition();
+				store_sidestep_start_root_pos = false;
+			}
+			
+			do_ik = true;
+		}
+			break;
+			
+			
+			
+		case TS_WALKOFF:
+		{
+			
+		}
+			break;
+			
+			
+			
+		default:
+			break;
+	}
 
 	
-
-	CalVector arm_actual_position = model.getBonePosition( tag_arm );
-	ofxVec3f arm_target = character.getTarget(tag_arm);
-	CalVector bone_target_delta = CalVector(arm_target.x,arm_target.y,arm_target.z)-arm_actual_position;
-	// vertical distance has less effect
-	bone_target_delta.y *= 0.5f;
-	float distance = bone_target_delta.length();
-	float discomfort = distance/COMFORT_DISTANCE_THRESH;
-	if ( discomfort > 1.0f && !sidestep_running )
+	if ( do_ik )
 	{
-		// need to move feet
-		//moveRootRelativeX( arm_target.x );
-		//move_speed = (discomfort*discomfort)-1.0f;
-		store_sidestep_start_root_pos = true;
-		model.doAction( bone_target_delta.x<0?SIDESTEP_L_ANIM:SIDESTEP_R_ANIM, 1.0f );
-		sidestep_running = true;
+		character.pullFromModel();
+		character.solve( 5 );
+		character.pushToModel( true );
+		model.updateMesh();
+		
+		CalVector arm_actual_position = model.getBonePosition( tag_arm );
+		ofxVec3f arm_target = character.getTarget(tag_arm);
+		CalVector bone_target_delta = CalVector(arm_target.x,arm_target.y,arm_target.z)-arm_actual_position;
+		// vertical distance has less effect
+		bone_target_delta.y *= 0.5f;
+		float distance = bone_target_delta.length();
+		float discomfort = distance/COMFORT_DISTANCE_THRESH;
+		if ( discomfort > 1.0f && !sidestep_running )
+		{
+			// need to move feet
+			store_sidestep_start_root_pos = true;
+			model.doAction( bone_target_delta.x<0?SIDESTEP_L_ANIM:SIDESTEP_R_ANIM, 1.0f );
+			sidestep_running = true;
+		}
+		last_discomfort = discomfort;
 	}
-	last_discomfort = discomfort;
-	
+	else
+		last_discomfort = 1.5f;
 }
-
 
 void IKTagger::draw( bool draw_debug )
 {
@@ -239,11 +310,14 @@ void IKTagger::draw( bool draw_debug )
 		bool draw_extended = false;
 		character.draw( 1.0f, draw_extended );
 	}
+	// THEO: PLEASE DON'T CHANGE THIS
 	glRotatef( 180, 0, 1, 0 );
 	glRotatef( -90, 1, 0, 0 );
-	// swap left handed to right handed
-	glScalef( -1, 1, 1 );
 	bool draw_wireframe = draw_debug;
+	// THEO: DON'T TOUCH
+	// Blender has a left-handed coordinate system
+	// so we must flip to adjust
+	glScalef( -1, 1, 1 );
 	model.draw( draw_wireframe );
 	glPopMatrix();
 }

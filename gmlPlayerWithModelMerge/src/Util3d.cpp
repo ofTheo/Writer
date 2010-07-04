@@ -59,14 +59,14 @@ void Util3d::begin3dDrawing( bool draw_ground_plane )
 	glLoadIdentity();
 	
 	// centre
-	ofxVec3f d_centre(eyeX, eyeY, eye_pos.z);
+	ofxVec3f d_centre(0, 0, dist);
 	d_centre.rotate( heading, ofxVec3f(0, 1, 0) );
 	d_centre.rotate( pitch, ofxVec3f(1, 0, 0) );
-	//ofxVec3f centre = eye_pos + d_centre;
-	gluLookAt(eye_pos.x, eye_pos.y, eye_pos.z, eye_pos.x, eye_pos.y, eye_pos.z-dist, 0.0, 1.0, 0.0);
+	ofxVec3f centre = eye_pos + d_centre;
+	gluLookAt(eyeX, eyeY, eye_pos.z, centre.x, centre.y, centre.z, 0.0, 1.0, 0.0);
 	
 	//glScalef( -1, -1, 1 );
-
+	
 	if ( draw_ground_plane )
 	{
 		// draw ground plane
@@ -84,6 +84,7 @@ void Util3d::begin3dDrawing( bool draw_ground_plane )
 		}
 		glEnd();
 	}	
+	
 	
 }
 
@@ -104,18 +105,18 @@ void Util3d::keyPressed( int key )
 		rotate_eye = !rotate_eye;
 	else if ( key == ':' )
 		printf("eye at %f %f %f heading %f pitch %f\n", eye_pos.x, eye_pos.y, eye_pos.z, heading, pitch );
-	else if ( key == ',' )
+	else if ( key == ',' || key == OF_KEY_UP )
 		moveEye( 0, 0, move_speed );
-	else if ( key == 'o' )
+	else if ( key == 'ooooooooooooo' || key == OF_KEY_DOWN )
 		moveEye( 0, 0, -move_speed );
-	else if ( key == 'a' )
+	else if ( key == 'a' || key == OF_KEY_LEFT )
 		moveEye( move_speed, 0, 0 );
-	else if ( key == 'e' )
+	else if ( key == 'e' || key == OF_KEY_RIGHT )
 		moveEye( -move_speed, 0, 0 );
-	else if ( key == '.' )
+	else if ( key == '.' || key == OF_KEY_PAGE_UP )
 		//moveEye( 0, move_speed, 0 );
 		eye_pos.y += move_speed;
-	else if ( key == 'j' )
+	else if ( key == 'j' || key == OF_KEY_PAGE_DOWN )
 		eye_pos.y -= move_speed;
 	//moveEye( 0, -move_speed, 0 );
 	

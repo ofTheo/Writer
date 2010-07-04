@@ -25,21 +25,28 @@ void testApp::setup(){
 	
 	ofSetVerticalSync(true);
 	
-	loadNewTag(lister.getPath(0));
-	
-
-	ofSetFrameRate( 60.0f ) ;
-
-	ofxVec3f start_eye_pos( 0, 2.0, 15 );
-	util_3d.setup( start_eye_pos );
-	
-	
-	z = 0;
 	
 	tagger.setup( "man_good.xml" );
 	//tagger.setOtherArmTarget( ofxVec3f(-1.0, -1.5, 2.0) );	
 		
 	shiftX = 0.0;
+
+	// loadNewTag must happen after tagger is setup
+	loadNewTag(lister.getPath(0));
+	
+	
+	ofSetFrameRate( 60.0f ) ;
+	
+	
+	// setup 3d world
+	// THEO: DON'T TOUCH UNTIL YOU'VE PLAYED WITH THE UTIL_3D INTERFACE
+	ofxVec3f start_eye_pos( 0, 2.0, -15 );
+	float heading = 0;
+	float pitch = 0;
+	util_3d.setup( start_eye_pos, heading, pitch );
+	
+	
+	z = 0;
 }
 
 //--------------------------------------------------------------
@@ -51,6 +58,8 @@ void testApp::loadNewTag(string path){
 	tag.setPct(drawPct);
 	panel.setValueB("restart", false);	
 	printf("LOAD NEW TAG\n");
+	
+	tagger.startWalkon( 0 );
 }
 
 //--------------------------------------------------------------
@@ -105,8 +114,11 @@ void testApp::update(){
 //--------------------------------------------------------------
 void testApp::draw(){
 	
-	float relX = startOffset.x + tag.currentPt.x * tagScale;
-	float relY = startOffset.y + tag.currentPt.y * tagScale;
+	bool flip_tag_x = true;
+	float tagScaleX = tagScale*(flip_tag_x?-1:1);
+	float tagScaleY = tagScale*1;
+	float relX = startOffset.x*(flip_tag_x?-1:1) + tag.currentPt.x * tagScaleX;
+	float relY = startOffset.y + tag.currentPt.y * tagScaleY;
 	
 	tagger.setTagArmTarget( ofxVec3f(relX, relY, 0) );
 	
@@ -114,7 +126,7 @@ void testApp::draw(){
 	
 	util_3d.begin3dDrawing( draw_ground_plane );
 	
-	ofRotate(panel.getValueF("rotate"), 0, 1, 0);
+//	ofRotate(panel.getValueF("rotate"), 0, 1, 0);
 
 	// turn on the z-buffer
 	glEnable( GL_DEPTH_TEST );
@@ -122,7 +134,7 @@ void testApp::draw(){
 	ofPushStyle();
 	ofSetLineWidth(2);
 	ofNoFill();
-	tag.draw(startOffset.x , startOffset.y, tagScale, tagScale);
+	tag.draw(startOffset.x*(flip_tag_x?-1:1), startOffset.y, tagScaleX, tagScaleY);
 	ofPopStyle();
 		
 	ofCircle(-0.5, 0.0, 0.1);
@@ -133,17 +145,44 @@ void testApp::draw(){
 	bool wireframe = false;
 	tagger.draw( wireframe );
 	
-	util_3d.end3dDrawing();
-
 	// turn off the z-buffer
 	glDisable( GL_DEPTH_TEST );
+
+	// go back to oF coordinate system
+	util_3d.end3dDrawing();
+
 	
 	panel.draw();
+	
+	// draw info
+	{
+		// now draw some debugging stuff
+		ofSetColor( 0x000000 );
+		ofDrawBitmapString( "UI : THEO SHOULD READ THIS  :-P\n"
+						   "; toggle mouse move eye rotation    up/down/left/right/pgup/pgdn move eye pos\n"
+						   , 400, 23 );
+		ofxVec3f tt = tagger.getTagArmTarget();
+		char buf[256];
+		sprintf(buf, "tag arm target now: %6.3f %6.3f %6.3f    discomfort %5.3f\n", tt.x, tt.y, tt.z, tagger.getHandTargetDiscomfort() );
+		ofDrawBitmapString( buf, 400, 23+2*13+13 );
+		
+		ofxVec3f e = util_3d.getEyePos();
+		float heading = util_3d.getHeading();
+		float pitch = util_3d.getPitch();
+		sprintf(buf, "eye at %f %f %f heading %f pitch %f\n", e.x, e.y, e.z, heading, pitch );
+		ofDrawBitmapString( buf, 400, ofGetHeight()-26 );
+	}
+	
+	
 }
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
 
+	util_3d.keyPressed( key );
+	
+	if ( key=='P' )
+		tagger.reset();
 }
 
 //--------------------------------------------------------------
@@ -153,27 +192,32 @@ void testApp::keyReleased(int key){
 
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y ){
+	util_3d.mouseMoved( x, y );
 
 }
 
 //--------------------------------------------------------------
 void testApp::mouseDragged(int x, int y, int button){
 	panel.mouseDragged(x, y, button);
-
+	util_3d.mouseDragged( x, y, button );
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
 	panel.mousePressed(x, y, button);
+	util_3d.mouseReleased( x, y, button );
 }
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
 	panel.mouseReleased();
+	util_3d.mouseReleased( x, y, button );
 }
 
 //--------------------------------------------------------------
 void testApp::resized(int w, int h){
 
 }
+
 

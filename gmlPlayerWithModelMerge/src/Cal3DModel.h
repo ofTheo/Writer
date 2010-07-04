@@ -45,6 +45,8 @@ public:
 	void stopCycle( string name );
 	/// play the given animation once
 	void doAction( string name, float weight=1.0f );
+	/// clear all playing animation
+	void clearAllAnimation();
 	/// true if the given animation has just looped; 
 	/// if a loop has just happed put the previous root position in prev_root_pos if non-NULL
 	bool animationDidLoop( string name, CalVector* prev_root_pos=NULL );
@@ -56,10 +58,14 @@ public:
 	/// draw just the bones of the model (for debugging)
 	void drawBones( float scale = 1.0f );
 	
+	/// return the root bone in the skeleton
+	CalBone* getRootBone();
 	/// return the location of the root bone in skeleton space
 	CalVector getRootBonePosition();
 	/// return the location of the requested bone in skeleton space
 	CalVector getBonePosition( string bone_name );
+	/// calculate and return the displacement caused to the root bone by the given animation
+	CalVector getAnimationRootDisplacement( string anim_name );
 	
 	/// access to the skeleton
 	/// if updating bone position/orientation, call updateMesh to push changes
@@ -68,7 +74,9 @@ public:
 	/// dump the loaded skeleton structure to the console
 	void dumpSkeleton();
 	/// return the given bone
-	CalBone* getBone( string name ) { return getSkeleton()->getBone( getSkeleton()->getCoreSkeleton()->getCoreBoneId( name ) );
+	CalBone* getBone( string name ) { return getSkeleton()->getBone( getSkeleton()->getCoreSkeleton()->getCoreBoneId( name ) ); }
+	/// return the given animation
+	CalCoreAnimation* getAnimation( string name ) { return model->getCoreAnimation( model->getCoreAnimationId( name ) ); }
 	
 	/// rotate the given bone about x by the given angle
 	void rotateBoneX( int id, float amount );

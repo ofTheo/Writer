@@ -10,6 +10,9 @@
 #include "Cal3DModel.h"
 #include "ofMain.h"
 #include "ofxVectorMath.h"
+#include "cal3d/coretrack.h"
+#include "cal3d/corekeyframe.h"
+
 
 Cal3DModel::Cal3DModel( )
 : model(0), instance(0)
@@ -27,6 +30,13 @@ bool Cal3DModel::setup( string name, string skeleton_file, string mesh_file )
 		CalError::printLastError();
 		return false;
 	}
+	int num_root_bones = model->getCoreSkeleton()->getVectorRootCoreBoneId().size();
+	if ( num_root_bones != 1 )
+	{
+		printf("error loading skeleton from %s: skeleton should have exactly 1 root bones (in fact has %i)\n", 
+			   skeleton_file.c_str(), num_root_bones );
+		return false;
+	}
 	mesh_id = model->loadCoreMesh( ofToDataPath(mesh_file) );
 	if ( mesh_id == -1 )
 	{
@@ -36,6 +46,7 @@ bool Cal3DModel::setup( string name, string skeleton_file, string mesh_file )
 	}
 	
 	num_bones = model->getCoreSkeleton()->getNumBones();
+	
 	
 	createInstance();
 	
@@ -389,8 +400,13 @@ void Cal3DModel::stopCycle( string name )
 
 CalVector Cal3DModel::getRootBonePosition()
 {
+	return getRootBone()->getTranslationAbsolute();
+}
+
+CalBone* Cal3DModel::getRootBone()
+{
 	int root_id = model->getCoreSkeleton()->getVectorRootCoreBoneId()[0];
-	return instance->getSkeleton()->getBone( root_id )->getTranslationAbsolute();
+	return instance->getSkeleton()->getBone( root_id );
 }
 
 bool Cal3DModel::animationDidLoop( string name, CalVector* root_pos )
@@ -474,3 +490,44 @@ void Cal3DModel::actionComplete( string name )
 
 }
 	
+
+void Cal3DModel::clearAllAnimation()
+{
+	std::list<CalAnimationAction *> actions = instance->getMixer()->getAnimationActionList();
+	for ( std::list<CalAnimationAction *>::iterator it = actions.begin(); 
+		 it != actions.end();
+		 ++it )
+	{
+		instance->getMixer()->removeAction( model->getCoreAnimationId((*it)->getCoreAnimation()->getName()) );
+	}
+	std::list<CalAnimationCycle *> cycles   = instance->getMixer()->getAnimationCycle();  
+	for ( std::list<CalAnimationCycle *>::iterator it = cycles.begin(); 
+		 it != cycles.end();
+		 ++it )
+	{
+		instance->getMixer()->clearCycle( model->getCoreAnimationId((*it)->getCoreAnimation()->getName()), 0 );
+	}
+}
+
+
+CalVector Cal3DModel::getAnimationRootDisplacement( string anim )
+{
+	// get the track for the core bone
+	CalBone* root_bone = getRootBone();
+	CalCoreAnimation* walk_anim = getAnimation( anim );
+	CalCoreTrack* root_track = walk_anim->getCoreTrack( root_bone->getCoreBone()->getId() );
+	// get the start position
+	int num_keyframes = root_track->getCoreKeyframeCount();
+	CalCoreKeyframe* first_keyframe = root_track->getCoreKeyframe( 0 );
+	CalCoreKeyframe* last_keyframe  = root_track->getCoreKeyframe( num_keyframes-1 );
+	CalVector p0     = first_keyframe->getTranslation();
+	CalQuaternion r = first_keyframe->getRotation();
+	printf("for anim %s:\n", anim.c_str() );
+	printf("  first keyframe: %6.3f %6.3f %6.3f   %6.3f %6.3f %6.3f %6.3f\n", p0.x, p0.y, p0.z, r.x, r.y, r.z, r.w );
+	CalVector p1 = last_keyframe->getTranslation();
+	r = last_keyframe->getRotation();
+	printf("  last keyframe : %6.3f %6.3f %6.3f   %6.3f %6.3f %6.3f %6.3f\n", p1.x, p1.y, p1.z, r.x, r.y, r.z, r.w );
+	CalVector disp = p1-p0;
+	printf("  total displacement: %6.3f %6.3f %6.3f\n", disp.x,disp.y, disp.z );
+	return disp;
+}	
