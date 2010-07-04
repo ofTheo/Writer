@@ -67,6 +67,8 @@ public:
 	CalSkeleton* getSkeleton() { return instance->getSkeleton(); }
 	/// dump the loaded skeleton structure to the console
 	void dumpSkeleton();
+	/// return the given bone
+	CalBone* getBone( string name ) { return getSkeleton()->getBone( getSkeleton()->getCoreSkeleton()->getCoreBoneId( name ) );
 	
 	/// rotate the given bone about x by the given angle
 	void rotateBoneX( int id, float amount );

@@ -41,6 +41,8 @@ const static string WALK_ANIM = "walk";
 const static string IDLE_ANIM = "idle";
 const static string SIDESTEP_L_ANIM = "sidestep_l";
 const static string SIDESTEP_R_ANIM = "sidestep_r";
+const static string TURN_TO_WALK_ANIM = "turn_to_walk";
+const static string WALK_TO_TURN_ANIM = "walk_to_turn";
 
 bool IKTagger::setup( string source_xml )
 {
@@ -67,6 +69,8 @@ bool IKTagger::setup( string source_xml )
 	model.loadAnimation( path+data.getValue("idle", ""), IDLE_ANIM );
 	model.loadAnimation( path+data.getValue("sidestep_l", ""), SIDESTEP_L_ANIM );
 	model.loadAnimation( path+data.getValue("sidestep_r", ""), SIDESTEP_R_ANIM );
+	model.loadAnimation( path+data.getValue("walk_to_turn", ""), WALK_TO_TURN_ANIM );
+	model.loadAnimation( path+data.getValue("turn_to_walk", ""), TURN_TO_WALK_ANIM );
 	data.popTag();
 
 	model.createInstance();
@@ -92,8 +96,28 @@ bool IKTagger::setup( string source_xml )
 	move_speed = 0.0f;
 	store_sidestep_start_root_pos = false;
 	sidestep_running = false;
-	
+
+
+	// determine length of walk cycle
+	CalBone* root_bone = model.getBone( root );
+	CalAnimation* walk_anim = model.
+
+
+
 	return true;
+}
+
+
+void IKTagger::startWalkOn( float tag_start_x )
+{
+	// move to the left of the screen
+	float x = tag_start_x;
+	while ( x > SCREEN_VISIBLE_LEFT )
+	{
+		x -= walk_cycle_dx;
+	}
+
+
 }
 
 
