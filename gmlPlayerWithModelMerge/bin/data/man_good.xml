@@ -15,6 +15,8 @@
 		<idle>man_goodIdle_baked.xaf</idle>
 		<sidestep_l>man_goodSidestep_baked_l.xaf</sidestep_l>
 		<sidestep_r>man_goodSidestep_baked_r.xaf</sidestep_r>
+		<sidestep_big_l>man_goodSidestep_b_baked_l.xaf</sidestep_big_l>
+		<sidestep_big_r>man_goodSidestep_b_baked_r.xaf</sidestep_big_r>
 		<walk_to_turn>man_goodWalk_to_turn_baked.xaf</walk_to_turn>
 		<turn_to_walk>man_goodTurn_to_walk_baked.xaf</turn_to_walk>
 	</animations>

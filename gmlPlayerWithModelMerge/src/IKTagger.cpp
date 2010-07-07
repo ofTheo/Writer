@@ -41,6 +41,8 @@ const static string WALK_ANIM = "walk";
 const static string IDLE_ANIM = "idle";
 const static string SIDESTEP_L_ANIM = "sidestep_l";
 const static string SIDESTEP_R_ANIM = "sidestep_r";
+const static string SIDESTEP_BIG_L_ANIM = "sidestep_big_l";
+const static string SIDESTEP_BIG_R_ANIM = "sidestep_big_r";
 const static string TURN_TO_WALK_ANIM = "turn_to_walk";
 const static string WALK_TO_TURN_ANIM = "walk_to_turn";
 
@@ -74,6 +76,8 @@ bool IKTagger::setup( string source_xml )
 	model.loadAnimation( path+data.getValue("idle", ""), IDLE_ANIM );
 	model.loadAnimation( path+data.getValue("sidestep_l", ""), SIDESTEP_L_ANIM );
 	model.loadAnimation( path+data.getValue("sidestep_r", ""), SIDESTEP_R_ANIM );
+	model.loadAnimation( path+data.getValue("sidestep_big_l", ""), SIDESTEP_BIG_L_ANIM );
+	model.loadAnimation( path+data.getValue("sidestep_big_r", ""), SIDESTEP_BIG_R_ANIM );
 	model.loadAnimation( path+data.getValue("walk_to_turn", ""), WALK_TO_TURN_ANIM );
 	model.loadAnimation( path+data.getValue("turn_to_walk", ""), TURN_TO_WALK_ANIM );
 	data.popTag();
@@ -104,6 +108,8 @@ bool IKTagger::setup( string source_xml )
 	// determine displacement of sidestep and walk-to-turn/turn-to-walk animations
 	sidestep_l_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_L_ANIM );
 	sidestep_r_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_R_ANIM );
+	sidestep_big_l_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_BIG_L_ANIM );
+	sidestep_big_r_root_displacement = model.getAnimationRootDisplacement( SIDESTEP_BIG_R_ANIM );
 	walk_to_turn_root_displacement = model.getAnimationRootDisplacement( WALK_TO_TURN_ANIM );
 	turn_to_walk_root_displacement = model.getAnimationRootDisplacement( TURN_TO_WALK_ANIM );
 
@@ -154,7 +160,7 @@ void IKTagger::startWalkon( float _tag_start_x )
 	// add on to our start position
 	walk_start.x += dx_rem;
 	// add on a random amount
-	walk_start.x += ofRandom( 0, 1 );
+	walk_start.x += ofRandom( 1, 2 );
 	
 	model.startCycle( WALK_ANIM );
 	setRootPosition( walk_start );
@@ -276,9 +282,21 @@ void IKTagger::update( float elapsed )
 			}
 			if ( sidestep_running && model.actionDidFinish( SIDESTEP_R_ANIM )  )
 			{
-				printf("sidestep l finished\n");
+				printf("sidestep r finished\n");
 				sidestep_running = false;
 				setRootPosition( root_pos+sidestep_r_root_displacement );
+			}
+			if ( sidestep_running && model.actionDidFinish( SIDESTEP_BIG_L_ANIM ) )
+			{
+				printf("sidestep big l finished\n");
+				sidestep_running = false;
+				setRootPosition( root_pos+sidestep_big_l_root_displacement );
+			}
+			if ( sidestep_running && model.actionDidFinish( SIDESTEP_BIG_R_ANIM )  )
+			{
+				printf("sidestep big r finished\n");
+				sidestep_running = false;
+				setRootPosition( root_pos+sidestep_big_r_root_displacement );
 			}
 			
 			// wait for sidesteps to finish
@@ -369,8 +387,23 @@ void IKTagger::update( float elapsed )
 		if ( discomfort > 1.0f && !sidestep_running && sidestep_allowed )
 		{
 			// need to move feet
-			printf("starting sidestep\n");
-			model.doAction( bone_target_delta.x<0?SIDESTEP_L_ANIM:SIDESTEP_R_ANIM, 1.0f );
+			string anim;
+			if ( bone_target_delta.x < 0 )
+			{
+				if (bone_target_delta.x < -0.75f )
+					anim = SIDESTEP_BIG_L_ANIM;
+				else
+					anim = SIDESTEP_L_ANIM;
+			}
+			else
+			{
+				if (bone_target_delta.x > 0.75f )
+					anim = SIDESTEP_BIG_R_ANIM;
+				else
+					anim = SIDESTEP_R_ANIM;
+			}
+			printf("starting %s, target delta is %f, discomfort %f\n", anim.c_str(), bone_target_delta.x, discomfort );
+			model.doAction( anim, 1.0f );
 			sidestep_running = true;
 		}
 		last_discomfort = discomfort;

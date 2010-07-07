@@ -61,6 +61,7 @@ private:
 	CalVector sidestep_l_root_displacement, sidestep_r_root_displacement;
 	CalVector walk_to_turn_root_displacement, turn_to_walk_root_displacement;
 	CalVector walk_root_displacement;
+	CalVector sidestep_big_l_root_displacement, sidestep_big_r_root_displacement;
 
 	typedef enum _TaggerState{ TS_WAITING, TS_WALKON, TS_WALK_TO_TURN, TS_TAGGING, 
 		TS_TURN_TO_WALK, TS_START_WALKOFF, TS_WALKOFF, TS_FINISHED } TaggerState;
